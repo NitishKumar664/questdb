@@ -33,14 +33,28 @@ import static io.questdb.cliutil.CmdUtils.runColumnRebuild;
 import static io.questdb.cliutil.RebuildColumnCommandArgs.parseCommandArgs;
 
 public class RebuildIndex {
+   private static final Log LOG = LogFactory.getLog(RebuildIndex.class);
+
     public static void main(String[] args) {
         LogFactory.enableGuaranteedLogging();
         RebuildColumnCommandArgs params = parseCommandArgs(args, RebuildIndex.class.getName());
+
         if (params == null) {
-            // Invalid params, usage already printed
+            LOG.error().$("Invalid parameters. Exiting.").$();
             return;
         }
-        final DefaultCairoConfiguration configuration = new DefaultCairoConfiguration("");
-        runColumnRebuild(params, new IndexBuilder(configuration));
+
+        String configurationPath = ""; // Adjust the configuration path as needed
+        final DefaultCairoConfiguration configuration = new DefaultCairoConfiguration(configurationPath);
+
+        rebuildIndexes(params, configuration);
+    }
+
+    private static void rebuildIndexes(RebuildColumnCommandArgs params, DefaultCairoConfiguration configuration) {
+        try (IndexBuilder indexBuilder = new IndexBuilder(configuration)) {
+            runColumnRebuild(params, indexBuilder);
+        } catch (Exception e) {
+            LOG.error().$("Error during index rebuild: ").$(e).$();
+        }
     }
 }
