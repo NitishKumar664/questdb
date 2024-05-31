@@ -22,8 +22,6 @@
  *
  ******************************************************************************/
 
-package io.questdb.cliutil;
-
 import io.questdb.std.Files;
 
 public class RebuildColumnCommandArgs {
@@ -36,38 +34,39 @@ public class RebuildColumnCommandArgs {
     }
 
     static RebuildColumnCommandArgs parseCommandArgs(String[] args, String command) {
-
-        if (args.length > 5 || args.length % 2 != 1) {
+        if (args.length < 1 || args.length % 2 != 1) {
             printUsage(command);
             return null;
         }
 
         RebuildColumnCommandArgs res = new RebuildColumnCommandArgs();
         res.tablePath = args[0];
-        for (int i = 1, n = args.length; i < n; i += 2) {
-            if ("-p".equals(args[i])) {
+        
+        for (int i = 1; i < args.length - 1; i += 2) {
+            String option = args[i];
+            String value = args[i + 1];
+
+            if ("-p".equals(option)) {
                 if (res.partition == null) {
-                    res.partition = args[i + 1];
+                    res.partition = value;
                 } else {
                     System.err.println("-p parameter can be only used once");
                     printUsage(command);
                     return null;
                 }
-            }
-
-            if ("-c".equals(args[i])) {
+            } else if ("-c".equals(option)) {
                 if (res.column == null) {
-                    res.column = args[i + 1];
+                    res.column = value;
                 } else {
                     System.err.println("-c parameter can be only used once");
                     printUsage(command);
                     return null;
                 }
+            } else {
+                System.err.println("Unknown option: " + option);
+                printUsage(command);
+                return null;
             }
-        }
-
-        if (res.tablePath.endsWith(String.valueOf(Files.SEPARATOR))) {
-            res.tablePath = "";
         }
 
         return res;
