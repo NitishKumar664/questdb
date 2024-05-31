@@ -26,8 +26,7 @@ package io.questdb.cliutil;
 
 import java.util.ArrayList;
 
-
-class TxFileStruct {
+public class TxFileStruct {
     // Gson serializable class
     public ArrayList<AttachedPartition> ATTACHED_PARTITIONS;
     public int ATTACHED_PARTITIONS_COUNT;
@@ -73,12 +72,12 @@ class TxFileStruct {
                 '}';
     }
 
-    static class AttachedPartition {
-        long DATA_TX;
-        long MASK;
-        long NAME_TX;
-        long SIZE;
-        long TS;
+    public static class AttachedPartition {
+        public long DATA_TX;
+        public long MASK;
+        public long NAME_TX;
+        public long SIZE;
+        public long TS;
 
         @Override
         public String toString() {
@@ -92,9 +91,9 @@ class TxFileStruct {
         }
     }
 
-    static class SymbolInfo {
-        int COUNT;
-        int UNCOMMITTED_COUNT;
+    public static class SymbolInfo {
+        public int COUNT;
+        public int UNCOMMITTED_COUNT;
 
         @Override
         public String toString() {
