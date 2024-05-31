@@ -30,23 +30,23 @@ import io.questdb.std.Numbers;
 import io.questdb.std.NumericException;
 
 public class Table2Ilp {
-    /*
-     * Reads table from 1 QuestDB instance using PgWire and sends it to another instance / table using ILP.
-     * Useful to migrate data from one QuestDB instance to another when the data has to be copied into a busy table.
-     *
-     *  Command line arguments: -d <destination_table_name> -dc <destination_ilp_host_port> -s <source_select_query> -sc <source_pg_connection_string>
-     *                             [-sts <timestamp_column>] [-sym <symbol_columns>] [-dauth <ilp_auth_key:ilp_auth_token>] [-dtls]
-     */
+
     public static void main(String[] args) {
         LogFactory.enableGuaranteedLogging();
 
-        Table2IlpParams params = Table2IlpParams.parse(args);
-        if (!params.isValid()) {
-            printUsage();
-            return;
-        }
+        try {
+            Table2IlpParams params = Table2IlpParams.parse(args);
+            if (!params.isValid()) {
+                printUsage();
+                return;
+            }
 
-        new Table2IlpCopier().copyTable(params);
+            new Table2IlpCopier().copyTable(params);
+        } catch (Exception e) {
+            System.err.println("An error occurred: " + e.getMessage());
+            e.printStackTrace();
+            printUsage();
+        }
     }
 
     private static void printUsage() {
@@ -67,10 +67,10 @@ public class Table2Ilp {
         private String[] symbols;
         private boolean valid = false;
 
-        public static Table2IlpParams parse(String[] args) {
+        public static Table2IlpParams parse(String[] args) throws IllegalArgumentException {
             Table2IlpParams params = new Table2IlpParams();
             if (args.length < 8 || args.length > 15) {
-                return params;
+                throw new IllegalArgumentException("Invalid number of arguments");
             }
 
             String symbolColumns = null, destinationIlpHostPort = null, destinationAuth = null;
@@ -103,53 +103,42 @@ public class Table2Ilp {
                         params.sourceTimestampColumnName = args[++i].trim();
                         break;
                     default:
-                        System.err.println("Error: invalid token: " + arg);
-                        break;
+                        throw new IllegalArgumentException("Invalid token: " + arg);
                 }
             }
 
-            if (params.sourceTimestampColumnName != null && !TableUtils.isValidColumnName(params.sourceTimestampColumnName, 255)) {
-                System.err.println("Error: invalid timestamp column name: " + params.sourceTimestampColumnName);
-                return params;
+            if (!TableUtils.isValidColumnName(params.sourceTimestampColumnName, 255)) {
+                throw new IllegalArgumentException("Invalid timestamp column name: " + params.sourceTimestampColumnName);
             }
 
-            if (params.destinationTableName == null || !TableUtils.isValidTableName(params.destinationTableName, 255)) {
-                System.err.println("Error: invalid destination table name: " + params.destinationTableName);
-                return params;
+            if (!TableUtils.isValidTableName(params.destinationTableName, 255)) {
+                throw new IllegalArgumentException("Invalid destination table name: " + params.destinationTableName);
             }
 
-            if (destinationIlpHostPort != null) {
-                String[] parts = destinationIlpHostPort.split("\\s*:\\s*");
+            if (destinationIlpHostPort == null) {
+                throw new IllegalArgumentException("Destination ILP host:port not specified");
+            }
 
-                if (parts.length != 2) {
-                    System.err.println("Error: invalid destination ILP host:port '" + destinationIlpHostPort + "'");
-                    return params;
-                }
-
-                params.destinationIlpHost = parts[0];
-                try {
-                    params.destinationIlpPort = Numbers.parseInt(parts[1]);
-                } catch (NumericException e) {
-                    System.err.println("Error: invalid destination ILP port: " + destinationIlpHostPort);
-                    return params;
-                }
-            } else {
-                System.err.println("error: destination ILP host:port not specified");
-                return params;
+            String[] parts = destinationIlpHostPort.split("\\s*:\\s*");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Invalid destination ILP host:port '" + destinationIlpHostPort + "'");
+            }
+            params.destinationIlpHost = parts[0];
+            try {
+                params.destinationIlpPort = Numbers.parseInt(parts[1]);
+            } catch (NumericException e) {
+                throw new IllegalArgumentException("Invalid destination ILP port: " + destinationIlpHostPort);
             }
 
             if (params.sourcePgConnectionString == null) {
-                System.err.println("Error: empty source Postgres connection string");
-                return params;
+                throw new IllegalArgumentException("Empty source Postgres connection string");
             }
 
             if (symbolColumns != null) {
                 String[] symbolColumnNames = symbolColumns.split("\\s*,\\s*");
-
-                for (int i = symbolColumnNames.length - 1; i > -1; i--) {
-                    if (!TableUtils.isValidColumnName(symbolColumnNames[i], 255)) {
-                        System.err.println("Error: invalid symbol column name '" + symbolColumnNames[i] + "'");
-                        return params;
+                for (String columnName : symbolColumnNames) {
+                    if (!TableUtils.isValidColumnName(columnName, 255)) {
+                        throw new IllegalArgumentException("Invalid symbol column name: " + columnName);
                     }
                 }
                 params.symbols = symbolColumnNames;
@@ -158,15 +147,12 @@ public class Table2Ilp {
             }
 
             if (destinationAuth != null) {
-                String[] parts = destinationAuth.split("\\s*:\\s*");
-
-                if (parts.length != 2) {
-                    System.err.println("Error: invalid destination ILP auth key:token '" + destinationAuth + "'");
-                    return params;
+                String[] authParts = destinationAuth.split("\\s*:\\s*");
+                if (authParts.length != 2) {
+                    throw new IllegalArgumentException("Invalid destination ILP auth key:token '" + destinationAuth + "'");
                 }
-
-                params.destinationAuthKey = parts[0];
-                params.destinationAuthToken = parts[1];
+                params.destinationAuthKey = authParts[0];
+                params.destinationAuthToken = authParts[1];
             }
 
             params.valid = true;
@@ -218,3 +204,4 @@ public class Table2Ilp {
         }
     }
 }
+
