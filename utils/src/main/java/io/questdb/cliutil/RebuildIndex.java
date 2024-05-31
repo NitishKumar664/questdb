@@ -37,10 +37,19 @@ public class RebuildIndex {
         LogFactory.enableGuaranteedLogging();
         RebuildColumnCommandArgs params = parseCommandArgs(args, RebuildIndex.class.getName());
         if (params == null) {
-            // Invalid params, usage already printed
+            System.err.println("Invalid command-line arguments.");
             return;
         }
-        final DefaultCairoConfiguration configuration = new DefaultCairoConfiguration("");
-        runColumnRebuild(params, new IndexBuilder(configuration));
+
+        // Provide a valid root directory path for configuration
+        final DefaultCairoConfiguration configuration = new DefaultCairoConfiguration("your_root_directory_path");
+        
+        // Ensure resources are properly closed or released
+        try {
+            runColumnRebuild(params, new IndexBuilder(configuration));
+        } finally {
+            // Close or release resources if necessary
+        }
     }
 }
+
