@@ -33,11 +33,36 @@ import io.questdb.std.str.Utf8String;
 public class CmdUtils {
     static void runColumnRebuild(RebuildColumnCommandArgs params, RebuildColumnBase ri) {
         final Log log = LogFactory.getLog("recover-var-index");
+
+        if (params == null) {
+            log.error().$("RebuildColumnCommandArgs is null").$();
+            return;
+        }
+        
+        if (params.tablePath == null) {
+            log.error().$("Table path is null").$();
+            return;
+        }
+        
+        if (params.partition == null) {
+            log.error().$("Partition is null").$();
+            return;
+        }
+        
+        if (params.column == null) {
+            log.error().$("Column is null").$();
+            return;
+        }
+        
         ri.of(new Utf8String(params.tablePath));
+        
         try {
             ri.reindex(params.partition, params.column);
         } catch (CairoException ex) {
             log.error().$(ex.getFlyweightMessage()).$();
+        } catch (Exception ex) {
+            log.error().$("Unexpected error: ").$(ex.getMessage()).$();
         }
     }
 }
+
